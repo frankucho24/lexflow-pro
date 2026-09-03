@@ -1,0 +1,19 @@
+# Secretos locales — NUNCA subir a GitHub
+.env
+lexflow/.env
+
+# Python
+__pycache__/
+*.pyc
+*.db
+
+# Frontend (se genera en el build)
+lexflow/node_modules/
+lexflow/dist/
+
+# Archivos locales (los documentos viven en Supabase Storage)
+uploads/
+
+# Sistema
+.DS_Store
+Thumbs.db

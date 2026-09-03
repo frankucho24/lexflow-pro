@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% block titulo %}Expediente {{ expediente.numero }}{% endblock %}
+{% block contenido %}
+
+<div class="encabezado">
+    <div>
+        <h1>Expediente {{ expediente.numero }}</h1>
+        <p class="sub">
+            <span class="etiqueta etiqueta-{{ expediente.tipo }}">{{ 'Judicial' if expediente.tipo == 'judicial' else 'Administrativo' }}</span>
+            <span class="etiqueta etiqueta-estado etiqueta-{{ expediente.estado }}">{{ expediente.estado }}</span>
+            {% if expediente.organo %} &middot; {{ expediente.organo }}{% endif %}
+            {% if expediente.materia %} &middot; {{ expediente.materia }}{% endif %}
+        </p>
+    </div>
+    <div class="acciones">
+        <a class="boton" href="{{ url_for('editar_expediente', expediente_id=expediente.id) }}">Editar</a>
+        <form method="post" action="{{ url_for('eliminar_expediente', expediente_id=expediente.id) }}" onsubmit="return confirm('¿Eliminar este expediente y todos sus datos? Esta acción no se puede deshacer.');">
+            <button class="boton boton-peligro" type="submit">Eliminar</button>
+        </form>
+    </div>
+</div>
+
+<div class="tarjetas tarjetas-ficha">
+    <div class="tarjeta tarjeta-plana">
+        <span class="tarjeta-eti">Cliente</span>
+        <span class="tarjeta-valor">{{ expediente.cliente or '—' }}</span>
+    </div>
+    <div class="tarjeta tarjeta-plana">
+        <span class="tarjeta-eti">Contraparte</span>
+        <span class="tarjeta-valor">{{ expediente.contraparte or '—' }}</span>
+    </div>
+    <div class="tarjeta tarjeta-plana">
+        <span class="tarjeta-eti">Ingreso</span>
+        <span class="tarjeta-valor">{{ expediente.fecha_ingreso or '—' }}</span>
+    </div>
+    <div class="tarjeta tarjeta-plana">
+        <span class="tarjeta-eti">Cierre</span>
+        <span class="tarjeta-valor">{{ expediente.fecha_cierre or '—' }}</span>
+    </div>
+    <div class="tarjeta tarjeta-plana">
+        <span class="tarjeta-eti">Última consulta</span>
+        <span class="tarjeta-valor">{{ expediente.ultima_consulta or '—' }}</span>
+    </div>
+</div>
+
+{% if expediente.descripcion %}
+<section class="panel">
+    <p>{{ expediente.descripcion }}</p>
+</section>
+{% endif %}
+
+<div class="rejilla">
+    <section class="panel">
+        <div class="panel-titulo">
+            <h2>Etapas del proceso</h2>
+        </div>
+        {% if etapas %}
+            <table class="tabla">
+                <thead>
+                    <tr>
+                        <th>Etapa</th>
+                        <th>Estado</th>
+                        <th>Inicio</th>
+                        <th>Fin</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for etapa in etapas %}
+                    <tr>
+                        <td>
+                            <strong>{{ etapa.nombre }}</strong>
+                            {% if etapa.notas %}<br><span class="sub">{{ etapa.notas }}</span>{% endif %}
+                        </td>
+                        <td>
+                            <form method="post" action="{{ url_for('cambiar_estado_etapa', expediente_id=expediente.id, etapa_id=etapa.id) }}">
+                                <select name="estado" onchange="this.form.submit()" class="select-estado">
+                                    {% for es in estados_etapa %}
+                                        <option value="{{ es }}" {{ 'selected' if etapa.estado == es }}>{{ es }}</option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        </td>
+                        <td>{{ etapa.fecha_inicio or '' }}</td>
+                        <td>{{ etapa.fecha_fin or '' }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('eliminar_etapa', expediente_id=expediente.id, etapa_id=etapa.id) }}" onsubmit="return confirm('¿Eliminar esta etapa?');">
+                                <button class="boton boton-pequeno boton-peligro" type="submit">x</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vacio">Sin etapas registradas.</p>
+        {% endif %}
+
+        <form class="formulario en-linea" method="post" action="{{ url_for('agregar_etapa', expediente_id=expediente.id) }}">
+            <div class="campo">
+                <input type="text" name="nombre" placeholder="Nombre de la etapa" required>
+            </div>
+            <div class="campo">
+                <select name="estado">
+                    {% for es in estados_etapa %}
+                        <option value="{{ es }}">{{ es }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="campo">
+                <input type="date" name="fecha_inicio" value="{{ hoy }}">
+            </div>
+            <div class="campo">
+                <input type="date" name="fecha_fin" placeholder="Fin">
+            </div>
+            <div class="campo">
+                <input type="text" name="notas" placeholder="Notas">
+            </div>
+            <button class="boton boton-primario" type="submit">Agregar</button>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="panel-titulo">
+            <h2>Actuaciones</h2>
+        </div>
+        {% if actuaciones %}
+            <ul class="lista-actuaciones">
+                {% for a in actuaciones %}
+                <li>
+                    <span class="fecha">{{ a.fecha }}</span>
+                    <div>
+                        <strong>{{ a.tipo }}</strong> &middot; {{ a.descripcion }}
+                        {% if a.notas %}<br><span class="sub">{{ a.notas }}</span>{% endif %}
+                        <form method="post" action="{{ url_for('eliminar_actuacion', expediente_id=expediente.id, actuacion_id=a.id) }}" onsubmit="return confirm('¿Eliminar esta actuación?');">
+                            <button class="boton boton-pequeno boton-peligro" type="submit">x</button>
+                        </form>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="vacio">Sin actuaciones registradas.</p>
+        {% endif %}
+
+        <form class="formulario en-linea" method="post" action="{{ url_for('agregar_actuacion', expediente_id=expediente.id) }}">
+            <div class="campo">
+                <input type="date" name="fecha" value="{{ hoy }}">
+            </div>
+            <div class="campo">
+                <select name="tipo">
+                    {% for t in tipos_actuacion %}
+                        <option value="{{ t }}">{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="campo">
+                <input type="text" name="descripcion" placeholder="Descripción" required>
+            </div>
+            <div class="campo">
+                <input type="text" name="notas" placeholder="Notas">
+            </div>
+            <button class="boton boton-primario" type="submit">Agregar</button>
+        </form>
+    </section>
+</div>
+
+<div class="rejilla">
+    <section class="panel">
+        <h2>Documentos adjuntos</h2>
+        {% if documentos %}
+            <table class="tabla">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Tipo</th>
+                        <th>Fecha</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in documentos %}
+                    <tr>
+                        <td><a href="{{ url_for('servir_documento', nombre=d.archivo) }}" target="_blank">&#128196; {{ d.nombre }}</a></td>
+                        <td>{{ d.tipo or '' }}</td>
+                        <td>{{ d.fecha or '' }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('eliminar_documento', expediente_id=expediente.id, documento_id=d.id) }}" onsubmit="return confirm('¿Eliminar este documento?');">
+                                <button class="boton boton-pequeno boton-peligro" type="submit">x</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="vacio">Sin documentos adjuntos.</p>
+        {% endif %}
+
+        <form class="formulario" method="post" action="{{ url_for('subir_documento', expediente_id=expediente.id) }}" enctype="multipart/form-data">
+            <div class="fila">
+                <div class="campo">
+                    <input type="file" name="archivo" required>
+                </div>
+                <div class="campo">
+                    <input type="text" name="tipo_documento" placeholder="Tipo (ej. demanda, poder, resolución)">
+                </div>
+                <div class="campo">
+                    <input type="date" name="fecha_documento" value="{{ hoy }}">
+                </div>
+            </div>
+            <button class="boton boton-primario" type="submit">Subir documento</button>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="panel-titulo">
+            <h2>Agenda del expediente</h2>
+            <a class="enlace" href="{{ url_for('nuevo_evento') }}">+ Nuevo evento</a>
+        </div>
+        {% if agenda %}
+            <ul class="lista-eventos">
+                {% for e in agenda %}
+                <li>
+                    <span class="fecha">{{ e.fecha }}<br><small>{{ e.hora or '' }}</small></span>
+                    <div>
+                        <strong>{{ e.titulo }}</strong> <span class="etiqueta etiqueta-{{ e.tipo }}">{{ e.tipo }}</span>
+                        <br><span class="etiqueta etiqueta-estado etiqueta-{{ e.estado }}">{{ e.estado }}</span>
+                        {% if e.notas %}<br><span class="sub">{{ e.notas }}</span>{% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="vacio">Sin eventos en la agenda para este expediente.</p>
+        {% endif %}
+    </section>
+</div>
+
+{% endblock %}

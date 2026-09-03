@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block titulo %}Agenda{% endblock %}
+{% block contenido %}
+
+<div class="encabezado">
+    <h1>Agenda</h1>
+    <a class="boton boton-primario" href="{{ url_for('nuevo_evento') }}">+ Nuevo evento</a>
+</div>
+
+<form class="filtros" method="get" action="{{ url_for('agenda') }}">
+    <select name="tipo">
+        <option value="">Todos los tipos</option>
+        <option value="audiencia" {{ 'selected' if filtro_tipo == 'audiencia' }}>Audiencias</option>
+        <option value="vencimiento" {{ 'selected' if filtro_tipo == 'vencimiento' }}>Vencimientos</option>
+        <option value="otro" {{ 'selected' if filtro_tipo == 'otro' }}>Otros</option>
+    </select>
+    <select name="estado">
+        <option value="">Todos los estados</option>
+        {% for e in estados %}
+            <option value="{{ e }}" {{ 'selected' if filtro_estado == e }}>{{ e }}</option>
+        {% endfor %}
+    </select>
+    <button class="boton" type="submit">Filtrar</button>
+</form>
+
+{% if eventos %}
+    <table class="tabla">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Título</th>
+                <th>Tipo</th>
+                <th>Expediente</th>
+                <th>Estado</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in eventos %}
+            <tr>
+                <td><strong>{{ e.fecha }}</strong>{{ ' (vencido)' if e.fecha < hoy and e.estado == 'pendiente' }}</td>
+                <td>{{ e.hora or '' }}</td>
+                <td>
+                    {{ e.titulo }}
+                    {% if e.notas %}<br><span class="sub">{{ e.notas }}</span>{% endif %}
+                </td>
+                <td><span class="etiqueta etiqueta-{{ e.tipo }}">{{ e.tipo }}</span></td>
+                <td>
+                    {% if e.expediente_id %}
+                        <a href="{{ url_for('detalle_expediente', expediente_id=e.expediente_id) }}">{{ e.numero_expediente }}</a>
+                    {% else %}—{% endif %}
+                </td>
+                <td>
+                    <form method="post" action="{{ url_for('cambiar_estado_evento', evento_id=e.id) }}">
+                        <select name="estado" onchange="this.form.submit()" class="select-estado">
+                            {% for es in estados %}
+                                <option value="{{ es }}" {{ 'selected' if e.estado == es }}>{{ es }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </td>
+                <td>
+                    <div class="acciones">
+                        <a class="boton boton-pequeno" href="{{ url_for('editar_evento', evento_id=e.id) }}">Editar</a>
+                        <form method="post" action="{{ url_for('eliminar_evento', evento_id=e.id) }}" onsubmit="return confirm('¿Eliminar este evento?');">
+                            <button class="boton boton-pequeno boton-peligro" type="submit">x</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p class="vacio">No hay eventos para mostrar.</p>
+{% endif %}
+
+{% endblock %}

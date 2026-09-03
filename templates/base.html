@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block titulo %}Sistema de Expedientes{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='estilos.css') }}">
+</head>
+<body>
+<header class="barra">
+    <div class="contenedor barra-interna">
+        <a class="marca" href="{{ url_for('index') }}">
+            <span class="marca-ico">&#9878;</span> Expedientes
+        </a>
+        <nav class="nav">
+            <a href="{{ url_for('index') }}" class="{{ 'activo' if request.endpoint == 'index' }}">Panel</a>
+            <a href="{{ url_for('lista_expedientes') }}" class="{{ 'activo' if request.endpoint == 'lista_expedientes' }}">Expedientes</a>
+            <a href="{{ url_for('agenda') }}" class="{{ 'activo' if request.endpoint == 'agenda' }}">Agenda</a>
+        </nav>
+    </div>
+</header>
+
+<main class="contenedor">
+    {% with mensajes = get_flashed_messages(with_categories=true) %}
+        {% if mensajes %}
+            {% for categoria, mensaje in mensajes %}
+                <div class="aviso aviso-{{ categoria }}">{{ mensaje }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% block contenido %}{% endblock %}
+</main>
+
+<footer class="pie">
+    <div class="contenedor">Sistema de Expedientes &middot; local</div>
+</footer>
+</body>
+</html>

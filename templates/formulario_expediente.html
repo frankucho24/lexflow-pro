@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block titulo %}Formulario de expediente{% endblock %}
+{% block contenido %}
+
+<div class="encabezado">
+    <h1>{{ 'Editar expediente' if expediente else 'Nuevo expediente' }}</h1>
+    <a class="enlace" href="{{ url_for('lista_expedientes') }}">&larr; Volver</a>
+</div>
+
+<form class="formulario" method="post">
+    <div class="campo">
+        <label for="numero">Número de expediente *</label>
+        <input type="text" id="numero" name="numero" required value="{{ expediente.numero if expediente else '' }}" placeholder="Ej. 1234-2026">
+    </div>
+
+    <div class="fila">
+        <div class="campo">
+            <label for="tipo">Tipo *</label>
+            <select id="tipo" name="tipo" required>
+                {% for t in tipos %}
+                    <option value="{{ t }}" {{ 'selected' if expediente and expediente.tipo == t }}>{{ 'Judicial' if t == 'judicial' else 'Administrativo' }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="campo">
+            <label for="estado">Estado</label>
+            <select id="estado" name="estado">
+                {% for e in estados %}
+                    <option value="{{ e }}" {{ 'selected' if expediente and expediente.estado == e }}>{{ e }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="fila">
+        <div class="campo">
+            <label for="organo">Órgano / Juzgado</label>
+            <input type="text" id="organo" name="organo" value="{{ expediente.organo if expediente else '' }}" placeholder="Ej. Juzgado Civil N° 3 / DPPI">
+        </div>
+        <div class="campo">
+            <label for="materia">Materia</label>
+            <input type="text" id="materia" name="materia" value="{{ expediente.materia if expediente else '' }}" placeholder="Ej. Civil, Penal, Laboral, Administrativa...">
+        </div>
+    </div>
+
+    <div class="fila">
+        <div class="campo">
+            <label for="cliente">Cliente</label>
+            <input type="text" id="cliente" name="cliente" value="{{ expediente.cliente if expediente else '' }}">
+        </div>
+        <div class="campo">
+            <label for="contraparte">Contraparte</label>
+            <input type="text" id="contraparte" name="contraparte" value="{{ expediente.contraparte if expediente else '' }}">
+        </div>
+    </div>
+
+    <div class="fila">
+        <div class="campo">
+            <label for="fecha_ingreso">Fecha de ingreso</label>
+            <input type="date" id="fecha_ingreso" name="fecha_ingreso" value="{{ expediente.fecha_ingreso if expediente else '' }}">
+        </div>
+        <div class="campo">
+            <label for="fecha_cierre">Fecha de cierre</label>
+            <input type="date" id="fecha_cierre" name="fecha_cierre" value="{{ expediente.fecha_cierre if expediente else '' }}">
+        </div>
+    </div>
+
+    <div class="campo">
+        <label for="descripcion">Descripción / Observaciones</label>
+        <textarea id="descripcion" name="descripcion" rows="3">{{ expediente.descripcion if expediente else '' }}</textarea>
+    </div>
+
+    <div class="acciones">
+        <button class="boton boton-primario" type="submit">Guardar</button>
+        <a class="boton" href="{{ url_for('lista_expedientes') }}">Cancelar</a>
+    </div>
+</form>
+
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block titulo %}Expedientes - Listado{% endblock %}
+{% block contenido %}
+
+<div class="encabezado">
+    <h1>Expedientes</h1>
+    <a class="boton boton-primario" href="{{ url_for('nuevo_expediente') }}">+ Nuevo expediente</a>
+</div>
+
+<form class="filtros" method="get" action="{{ url_for('lista_expedientes') }}">
+    <input type="text" name="q" placeholder="Buscar número, cliente, materia..." value="{{ busqueda }}">
+    <select name="tipo">
+        <option value="">Todos los tipos</option>
+        {% for t in tipos %}
+            <option value="{{ t }}" {{ 'selected' if tipo == t }}>{{ 'Judicial' if t == 'judicial' else 'Administrativo' }}</option>
+        {% endfor %}
+    </select>
+    <select name="estado">
+        <option value="">Todos los estados</option>
+        {% for e in estados %}
+            <option value="{{ e }}" {{ 'selected' if estado == e }}>{{ e }}</option>
+        {% endfor %}
+    </select>
+    <button class="boton" type="submit">Filtrar</button>
+    {% if busqueda or tipo or estado %}
+        <a class="enlace" href="{{ url_for('lista_expedientes') }}">Limpiar</a>
+    {% endif %}
+</form>
+
+{% if expedientes %}
+    <table class="tabla">
+        <thead>
+            <tr>
+                <th>Número</th>
+                <th>Tipo</th>
+                <th>Órgano / Juzgado</th>
+                <th>Materia</th>
+                <th>Cliente</th>
+                <th>Estado</th>
+                <th>Última actuación</th>
+                <th>Última consulta</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in expedientes %}
+            <tr onclick="location.href='{{ url_for('detalle_expediente', expediente_id=e.id) }}'">
+                <td><strong>{{ e.numero }}</strong></td>
+                <td><span class="etiqueta etiqueta-{{ e.tipo }}">{{ 'Judicial' if e.tipo == 'judicial' else 'Administrativo' }}</span></td>
+                <td>{{ e.organo or '' }}</td>
+                <td>{{ e.materia or '' }}</td>
+                <td>{{ e.cliente or '' }}</td>
+                <td><span class="etiqueta etiqueta-estado etiqueta-{{ e.estado }}">{{ e.estado }}</span></td>
+                <td class="celda-ultima">
+                    {% if e.ultima_actuacion %}
+                        <span class="sub">{{ e.ultima_actuacion }}</span>
+                    {% elif e.ultimo_documento %}
+                        <span class="sub">&#128196; {{ e.ultimo_documento }}</span>
+                    {% else %}
+                        <span class="vacio">—</span>
+                    {% endif %}
+                </td>
+                <td class="celda-ultima">{{ e.ultima_consulta or '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p class="vacio">No se encontraron expedientes con los filtros aplicados.</p>
+{% endif %}
+
+{% endblock %}

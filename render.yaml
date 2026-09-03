@@ -1,0 +1,20 @@
+# LexFlow Pro — Backend Flask en Render (plan gratuito).
+# Uso: subir este repo a GitHub → Render → New → Blueprint → elegir el repo.
+# Las variables marcadas con "sync: false" se completan en el panel de Render.
+
+services:
+  - type: web
+    name: lexflow-api
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn server:app --bind 0.0.0.0:$PORT --workers 2"
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        # Reemplazar por el dominio de Netlify cuando lo tengas, ej:
+        # https://lexflow.netlify.app
+        value: "*"

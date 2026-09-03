@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block titulo %}Evento de agenda{% endblock %}
+{% block contenido %}
+
+<div class="encabezado">
+    <h1>{{ 'Editar evento' if evento else 'Nuevo evento' }}</h1>
+    <a class="enlace" href="{{ url_for('agenda') }}">&larr; Volver</a>
+</div>
+
+<form class="formulario" method="post">
+    <div class="campo">
+        <label for="titulo">Título *</label>
+        <input type="text" id="titulo" name="titulo" required value="{{ evento.titulo if evento else '' }}" placeholder="Ej. Audiencia, Vence plazo de contestación...">
+    </div>
+
+    <div class="fila">
+        <div class="campo">
+            <label for="tipo">Tipo</label>
+            <select id="tipo" name="tipo">
+                <option value="audiencia" {{ 'selected' if evento and evento.tipo == 'audiencia' }}>Audiencia</option>
+                <option value="vencimiento" {{ 'selected' if evento and evento.tipo == 'vencimiento' }}>Vencimiento</option>
+                <option value="otro" {{ 'selected' if evento and evento.tipo == 'otro' }}>Otro</option>
+            </select>
+        </div>
+        <div class="campo">
+            <label for="estado">Estado</label>
+            <select id="estado" name="estado">
+                {% for e in estados %}
+                    <option value="{{ e }}" {{ 'selected' if evento and evento.estado == e }}>{{ e }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="fila">
+        <div class="campo">
+            <label for="fecha">Fecha *</label>
+            <input type="date" id="fecha" name="fecha" required value="{{ evento.fecha if evento else hoy }}">
+        </div>
+        <div class="campo">
+            <label for="hora">Hora</label>
+            <input type="time" id="hora" name="hora" value="{{ evento.hora if evento else '' }}">
+        </div>
+    </div>
+
+    <div class="campo">
+        <label for="expediente_id">Expediente relacionado</label>
+        <select id="expediente_id" name="expediente_id">
+            <option value="">— Sin expediente —</option>
+            {% for x in expedientes %}
+                <option value="{{ x.id }}" {{ 'selected' if evento and evento.expediente_id == x.id }}>
+                    {{ x.numero }} ({{ 'Judicial' if x.tipo == 'judicial' else 'Administrativo' }})
+                    {% if x.cliente %} - {{ x.cliente }}{% endif %}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="campo">
+        <label for="notas">Notas</label>
+        <textarea id="notas" name="notas" rows="3">{{ evento.notas if evento else '' }}</textarea>
+    </div>
+
+    <div class="acciones">
+        <button class="boton boton-primario" type="submit">Guardar</button>
+        <a class="boton" href="{{ url_for('agenda') }}">Cancelar</a>
+    </div>
+</form>
+
+{% endblock %}

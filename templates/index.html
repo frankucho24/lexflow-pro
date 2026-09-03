@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block titulo %}Panel - Expedientes{% endblock %}
+{% block contenido %}
+
+<div class="encabezado">
+    <h1>Panel de control</h1>
+    <a class="boton boton-primario" href="{{ url_for('nuevo_expediente') }}">+ Nuevo expediente</a>
+</div>
+
+<div class="tarjetas">
+    <div class="tarjeta tarjeta-judicial">
+        <span class="tarjeta-num">{{ judiciales }}</span>
+        <span class="tarjeta-eti">Expedientes judiciales</span>
+    </div>
+    <div class="tarjeta tarjeta-administrativo">
+        <span class="tarjeta-num">{{ administrativos }}</span>
+        <span class="tarjeta-eti">Expedientes administrativos</span>
+    </div>
+    <div class="tarjeta tarjeta-activos">
+        <span class="tarjeta-num">{{ activos }}</span>
+        <span class="tarjeta-eti">Activos</span>
+    </div>
+    <div class="tarjeta tarjeta-cerrados">
+        <span class="tarjeta-num">{{ cerrados }}</span>
+        <span class="tarjeta-eti">Cerrados</span>
+    </div>
+</div>
+
+<div class="rejilla">
+    <section class="panel">
+        <h2>&#128197; Próximas audiencias</h2>
+        {% if proximas_audiencias %}
+            <ul class="lista-eventos">
+                {% for e in proximas_audiencias %}
+                <li>
+                    <span class="fecha">{{ e.fecha }}<br><small>{{ e.hora or '' }}</small></span>
+                    <div>
+                        <strong>{{ e.titulo }}</strong>
+                        {% if e.numero %}<br><span class="sub">{{ e.numero }}</span>{% endif %}
+                        {% if e.expediente_id %}<br><a href="{{ url_for('detalle_expediente', expediente_id=e.expediente_id) }}">Ver expediente</a>{% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="vacio">No hay audiencias próximas.</p>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <h2>&#9202; Vencimientos próximos</h2>
+        {% if proximos_vencimientos %}
+            <ul class="lista-eventos">
+                {% for e in proximos_vencimientos %}
+                <li>
+                    <span class="fecha">{{ e.fecha }}</span>
+                    <div>
+                        <strong>{{ e.titulo }}</strong>
+                        {% if e.numero %}<br><span class="sub">{{ e.numero }}</span>{% endif %}
+                        {% if e.expediente_id %}<br><a href="{{ url_for('detalle_expediente', expediente_id=e.expediente_id) }}">Ver expediente</a>{% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="vacio">No hay vencimientos próximos.</p>
+        {% endif %}
+    </section>
+</div>
+
+<section class="panel">
+    <h2>Expedientes recientes</h2>
+    {% if recientes %}
+        <table class="tabla">
+            <thead>
+                <tr>
+                    <th>Número</th>
+                    <th>Tipo</th>
+                    <th>Órgano / Juzgado</th>
+                    <th>Materia</th>
+                    <th>Cliente</th>
+                    <th>Estado</th>
+                    <th>Última consulta</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in recientes %}
+                <tr onclick="location.href='{{ url_for('detalle_expediente', expediente_id=e.id) }}'">
+                    <td>{{ e.numero }}</td>
+                    <td><span class="etiqueta etiqueta-{{ e.tipo }}">{{ 'Judicial' if e.tipo == 'judicial' else 'Administrativo' }}</span></td>
+                    <td>{{ e.organo or '' }}</td>
+                    <td>{{ e.materia or '' }}</td>
+                    <td>{{ e.cliente or '' }}</td>
+                    <td><span class="etiqueta etiqueta-estado etiqueta-{{ e.estado }}">{{ e.estado }}</span></td>
+                    <td class="celda-ultima">{{ e.ultima_consulta or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="vacio">Aún no hay expedientes registrados. Comienza creando el primero.</p>
+    {% endif %}
+</section>
+
+{% endblock %}

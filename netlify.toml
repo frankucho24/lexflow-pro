@@ -1,0 +1,20 @@
+# LexFlow Pro — configuración de deploy en Netlify (solo frontend estático).
+# El backend Flask (server.py) NO corre en Netlify: debe desplegarse
+# en un host Python (Render, Railway, VPS) y apuntarse con VITE_API_URL.
+
+[build]
+  # El frontend vive en lexflow/: Netlify entra ahí, instala
+  # dependencias desde lexflow/package.json y compila.
+  base = "lexflow"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA fallback: las rutas internas (/expedientes, /agenda, /login...)
+# sirven index.html en vez de dar 404 al recargar.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

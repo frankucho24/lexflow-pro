@@ -1,0 +1,3 @@
+# SPA fallback (respaldo del redirect de netlify.toml).
+# Vite copia este archivo a dist/_redirects durante el build.
+/* /index.html 200
