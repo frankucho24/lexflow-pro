@@ -1,5 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
+import { miPerfil } from "../adminApi";
 
 const NAV_ITEMS = [
   { to: "/", icon: "📊", label: "Panel General" },
@@ -7,6 +9,7 @@ const NAV_ITEMS = [
   { to: "/agenda", icon: "📅", label: "Agenda / Plazos" },
   { to: "/clientes", icon: "👥", label: "Clientes" },
   { to: "/ajustes", icon: "⚙️", label: "Ajustes" },
+  { to: "/ajustes/usuarios", icon: "🔑", label: "Usuarios", adminOnly: true },
 ];
 
 function NavLinkItem({ item, onNavegar }) {
@@ -33,6 +36,20 @@ function NavLinkItem({ item, onNavegar }) {
 
 export default function Sidebar({ abierto = false, onNavegar = () => {} }) {
   const navigate = useNavigate();
+  const [sesionTxt, setSesionTxt] = useState("Sesión…");
+  const [esAdmin, setEsAdmin] = useState(false);
+
+  useEffect(() => {
+    miPerfil()
+      .then(({ user, perfil }) => {
+        if (!user) return;
+        const nombre = perfil?.nombre || user.email || "Sesión";
+        const rol = perfil?.rol ? ` · ${perfil.rol}` : "";
+        setSesionTxt(`Sesión: ${nombre}${rol}`);
+        setEsAdmin(perfil?.es_admin === true);
+      })
+      .catch(() => {});
+  }, []);
 
   const salir = async () => {
     await supabase.auth.signOut();
@@ -63,13 +80,13 @@ export default function Sidebar({ abierto = false, onNavegar = () => {} }) {
       </div>
 
       <nav className="flex-1 py-4 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map((item) => (
+        {NAV_ITEMS.filter((item) => !item.adminOnly || esAdmin).map((item) => (
           <NavLinkItem key={item.label} item={item} onNavegar={onNavegar} />
         ))}
       </nav>
 
       <div className="px-5 py-4 border-t border-slate-800 space-y-2">
-        <p className="text-xs text-slate-500 truncate">Sesión: Dra. Martínez</p>
+        <p className="text-xs text-slate-500 truncate">{sesionTxt}</p>
         <button
           type="button"
           onClick={salir}

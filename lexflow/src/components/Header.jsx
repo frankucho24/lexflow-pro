@@ -12,6 +12,8 @@ function buildCrumb(pathname) {
   if (/^\/agenda\/\d+\/editar$/.test(pathname)) return ["Agenda / Plazos", "Editar evento"];
   if (pathname === "/clientes") return ["Clientes"];
   if (pathname === "/ajustes") return ["Ajustes"];
+  if (pathname === "/ajustes/usuarios") return ["Ajustes", "Usuarios"];
+  if (pathname === "/ajustes/mi-cuenta") return ["Ajustes", "Mi cuenta"];
   return ["LexFlow Pro"];
 }
 

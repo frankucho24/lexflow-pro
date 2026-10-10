@@ -84,6 +84,66 @@ def requiere_auth(f):
     return decorada
 
 
+ROLES = ["admin", "abogado", "secretario"]
+
+
+def perfil_de(user_id):
+    try:
+        filas = sb.table("profiles").select("*").eq("id", user_id).limit(1).execute().data
+        return filas[0] if filas else None
+    except Exception:
+        return None
+
+
+def es_admin(user_id):
+    p = perfil_de(user_id)
+    return bool(p) and p.get("rol") == "admin"
+
+
+def requiere_admin(f):
+    @wraps(f)
+    def decorada(*args, **kwargs):
+        user = usuario_actual()
+        if user is None:
+            return jsonify({"error": "No autorizado. Inicia sesión."}), 401
+        if not es_admin(user.id):
+            return jsonify({"error": "Acceso restringido. Se requiere rol administrador."}), 403
+        return f(*args, **kwargs)
+    return decorada
+
+
+def validar_usuario_admin(datos, exige_password=True):
+    email = campo(datos, "email").lower()
+    password = datos.get("password") or ""
+    nombre = campo(datos, "nombre")
+    rol = datos.get("rol") or "abogado"
+    if rol not in ROLES:
+        rol = "abogado"
+    if not email or "@" not in email:
+        return None, "Email inválido."
+    if exige_password and len(password) < 6:
+        return None, "La contraseña debe tener al menos 6 caracteres."
+    if password and len(password) < 6:
+        return None, "La contraseña debe tener al menos 6 caracteres."
+    return {"email": email, "password": password, "nombre": nombre, "rol": rol}, None
+
+
+def serializar_auth_user(u, perfiles):
+    uid = getattr(u, "id", None) or (u.get("id") if isinstance(u, dict) else None)
+    email = getattr(u, "email", None) or (u.get("email") if isinstance(u, dict) else None)
+    creado = getattr(u, "created_at", None) or (u.get("created_at") if isinstance(u, dict) else None)
+    ultimo = getattr(u, "last_sign_in_at", None) or (u.get("last_sign_in_at") if isinstance(u, dict) else None)
+    p = perfiles.get(uid, {})
+    return {
+        "id": uid,
+        "email": email,
+        "nombre": p.get("nombre") or "",
+        "rol": p.get("rol") or "abogado",
+        "created_at": str(creado) if creado else None,
+        "last_sign_in_at": str(ultimo) if ultimo else None,
+    }
+
+
 def validar_expediente(datos):
     numero = campo(datos, "numero")
     tipo = datos.get("tipo") or ""
@@ -475,6 +535,131 @@ def api_estado_evento(evento_id):
 @requiere_auth
 def api_eliminar_evento(evento_id):
     sb.table("agenda").delete().eq("id", evento_id).execute()
+    return jsonify({"ok": True})
+
+
+# ---------------------------------------------------------------------------
+# Perfil propio + administración de usuarios (requiere backend con service key)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/perfil")
+@requiere_auth
+def api_perfil():
+    user = usuario_actual()
+    perfil = perfil_de(user.id)
+    if perfil is None:
+        # Bootstrap: el primer perfil del sistema nace admin,
+        # los siguientes nacen abogado. Evita quedarse sin admin.
+        try:
+            total = sb.table("profiles").select("id", count="exact").limit(0).execute().count or 0
+        except Exception:
+            total = 1
+        rol = "admin" if total == 0 else "abogado"
+        try:
+            sb.table("profiles").upsert({
+                "id": user.id,
+                "email": getattr(user, "email", None),
+                "nombre": "",
+                "rol": rol,
+            }).execute()
+            perfil = perfil_de(user.id) or {"rol": rol}
+        except Exception as e:
+            return jsonify({"error": f"No se pudo crear el perfil: {e}"}), 500
+    return jsonify({
+        "id": user.id,
+        "email": getattr(user, "email", None),
+        "nombre": (perfil or {}).get("nombre") or "",
+        "rol": (perfil or {}).get("rol") or "abogado",
+        "es_admin": (perfil or {}).get("rol") == "admin",
+    })
+
+
+@app.get("/api/admin/users")
+@requiere_admin
+def api_admin_listar():
+    try:
+        auth_users = sb.auth.admin.list_users() or []
+    except Exception as e:
+        return jsonify({"error": f"No se pudo listar usuarios: {e}"}), 500
+    try:
+        perfiles = {p["id"]: p for p in sb.table("profiles").select("*").execute().data}
+    except Exception:
+        perfiles = {}
+    return jsonify([serializar_auth_user(u, perfiles) for u in auth_users])
+
+
+@app.post("/api/admin/users")
+@requiere_admin
+def api_admin_crear():
+    datos = request.get_json(silent=True) or {}
+    valores, error = validar_usuario_admin(datos, exige_password=True)
+    if error:
+        return jsonify({"error": error}), 400
+    try:
+        creado = sb.auth.admin.create_user({
+            "email": valores["email"],
+            "password": valores["password"],
+            "email_confirm": True,
+            "user_metadata": {"nombre": valores["nombre"]},
+        })
+    except Exception as e:
+        return jsonify({"error": f"No se pudo crear el usuario: {e}"}), 400
+    nuevo = creado.user
+    try:
+        sb.table("profiles").upsert({
+            "id": nuevo.id,
+            "email": valores["email"],
+            "nombre": valores["nombre"],
+            "rol": valores["rol"],
+        }).execute()
+    except Exception as e:
+        return jsonify({"error": f"Usuario creado pero falló el perfil: {e}", "id": nuevo.id}), 500
+    return jsonify({"id": nuevo.id}), 201
+
+
+@app.patch("/api/admin/users/<uid>")
+@requiere_admin
+def api_admin_actualizar(uid):
+    datos = request.get_json(silent=True) or {}
+    nombre = campo(datos, "nombre")
+    rol = datos.get("rol") or ""
+    if rol and rol not in ROLES:
+        return jsonify({"error": "Rol inválido."}), 400
+    password = datos.get("password") or ""
+    if password and len(password) < 6:
+        return jsonify({"error": "La contraseña debe tener al menos 6 caracteres."}), 400
+    if password:
+        try:
+            sb.auth.admin.update_user_by_id(uid, {"password": password})
+        except Exception as e:
+            return jsonify({"error": f"No se pudo cambiar la contraseña: {e}"}), 400
+    cambios = {}
+    if nombre:
+        cambios["nombre"] = nombre
+    if rol:
+        cambios["rol"] = rol
+    if cambios:
+        try:
+            sb.table("profiles").update(cambios).eq("id", uid).execute()
+        except Exception as e:
+            return jsonify({"error": f"No se pudo actualizar el perfil: {e}"}), 500
+    return jsonify({"ok": True})
+
+
+@app.delete("/api/admin/users/<uid>")
+@requiere_admin
+def api_admin_eliminar(uid):
+    actual = usuario_actual()
+    if actual and str(actual.id) == str(uid):
+        return jsonify({"error": "No puedes eliminar tu propia cuenta de administradora."}), 400
+    try:
+        sb.auth.admin.delete_user(uid)
+    except Exception as e:
+        return jsonify({"error": f"No se pudo eliminar: {e}"}), 400
+    try:
+        sb.table("profiles").delete().eq("id", uid).execute()
+    except Exception:
+        pass
     return jsonify({"ok": True})
 
 
