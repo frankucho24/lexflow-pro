@@ -112,6 +112,11 @@ export const modoDirecto = {
   },
 
   async crearUsuario({ email, password, nombre, rol }) {
+    email = (email || "").trim().toLowerCase();
+    nombre = (nombre || "").trim();
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      throw new Error("Email inválido. Revisa que no tenga espacios.");
+    }
     const tmp = clienteSecundario();
     const { data, error } = await tmp.auth.signUp({
       email,
