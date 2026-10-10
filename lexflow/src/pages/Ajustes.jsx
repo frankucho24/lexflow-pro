@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { adminApi } from "../adminApi";
+import { adminApi, miPerfil, TIENE_BACKEND } from "../adminApi";
 
 export default function Ajustes() {
   const [perfil, setPerfil] = useState(null);
 
   useEffect(() => {
-    adminApi.perfil().then(setPerfil).catch(() => setPerfil(null));
+    miPerfil()
+      .then(({ perfil }) => setPerfil(perfil))
+      .catch(() => setPerfil(null));
   }, []);
 
   const esAdmin = perfil?.es_admin;
@@ -44,7 +46,9 @@ export default function Ajustes() {
             </Link>
           ) : (
             <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
-              Requiere backend (VITE_API_URL) + rol admin. Ejecuta supabase_roles.sql y promueve tu cuenta.
+              {TIENE_BACKEND
+                ? "Requiere rol admin. Pide a tu admin que te promueva."
+                : "Requiere rol admin (app_metadata + profiles). Ejecuta supabase_roles_direct.sql y márcate admin."}
             </p>
           )}
         </section>
